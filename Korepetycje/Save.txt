@@ -1,0 +1,4 @@
+life 100
+threelasercounter 10
+twolasercounter 0
+coincounter 0
