@@ -35,7 +35,7 @@ If you run of life Game Over window will pop up and you can add you name to  ran
 
 ![image](https://user-images.githubusercontent.com/104444592/166554582-a31d0099-1794-42c2-bf6d-01f5c5d2f2bb.png)
 
-![image](https://user-images.githubusercontent.com/104444592/166554622-867ebf52-cc1f-4704-a732-b25ffb2fc98b.png
+![image](https://user-images.githubusercontent.com/104444592/166554622-867ebf52-cc1f-4704-a732-b25ffb2fc98b.png)
 
 Car service database
 
