@@ -41,12 +41,18 @@ Car service database
 
 Lekcja29cz2_30_31_32_33
 
-You select between Cars, Workstations and Employees.
+You select between Cars, Workstations, Employees, Orders, Admin Panel.
 Cars have CRUD for Cars table.
 Workstations have CRUD for Workstations table.
 By clicking  plus button you can select which Car will  be assigned to specific workstation.
 Workstations have CRUD for Workstations table.
 By clicking  plus button you can select which Cars will be assigned to specific employee.
+Orders have CRUD for Orders table.
+Admin Panel allows you to Chnage password, Bann, Unbann user.
+
+![image](https://user-images.githubusercontent.com/104444592/167370796-65dc08a7-79b5-49a0-8a4b-10790981abaa.png)
+
+![image](https://user-images.githubusercontent.com/104444592/167370891-ae5cfc62-c8b4-42aa-ba9c-3e04c146d9aa.png)
 
 ![image](https://user-images.githubusercontent.com/104444592/166554685-5cc3d51c-aeb4-48e0-866b-51a0c1dd3da4.png)
 
@@ -56,6 +62,8 @@ By clicking  plus button you can select which Cars will be assigned to specific 
 
 ![image](https://user-images.githubusercontent.com/104444592/166554895-c9ad5afc-c29e-47ae-bbe2-d748c7e4aa2a.png)
 
-
 ![image](https://user-images.githubusercontent.com/104444592/166554824-e62da358-bf26-47eb-8447-a792e3759bdb.png)
 
+![image](https://user-images.githubusercontent.com/104444592/167371106-9f1fcc37-9a9d-446c-a9fa-8d98d1f6e91e.png)
+
+![image](https://user-images.githubusercontent.com/104444592/167371030-3b9da3dc-2b28-4bb3-b8de-e73441ae27da.png)
