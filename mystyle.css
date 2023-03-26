@@ -1,0 +1,334 @@
+#promotion {
+  background-color: #ccffcc;
+}
+
+#dropping_out {
+  background-color: #ffcccc;
+}
+
+body {
+  background-color: lightgrey;
+  background-size: 1920px 1080px;
+}
+
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+  float: right;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: rgb(34,177,76);
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: rgb(181,230,29);
+}
+
+/* Style the tab content */
+
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+}
+
+table, th, td {
+  border:1px solid black;
+}
+
+p {
+	line-height: 1.8;
+	word-spacing: 10px;
+}
+
+.myDiv::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.Car1{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Car2{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Car3{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Castel_Sant_Angelo{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Coloseum{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Monteriggioni{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Pantheon{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Pantheon{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Piazza_Navona{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Piazza_Venezia{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Roman_Forum{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.St_Peters_Basilica{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Trevi_Fountain{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.Vatican_Museums{
+	float:left;
+	margin-left: 80px;
+	margin-right: 80px;
+}
+
+.CV{
+	float:right;
+	margin-left: 80px;
+	margin-right: 80px;
+	position: -webkit-sticky;
+	position: sticky;
+	top: 100;
+}
+
+.container {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+.info {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.info .info_point {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.info .info_description {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+h2 {
+	font-weight: bold;
+	text-transform: uppercase;
+	display: block;
+    font-size: 1.17em;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+}
+
+.exp {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.exp .exp_date {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.exp .exp_pos {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+.edu {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.edu .edu_date {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.edu .edu_pos {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+.skills {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.skills .skills_info {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.skills .skills_description {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+.skills {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.skills .skills_info {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.skills .skills_description {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+.lan {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.lan .lan_info {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.lan .lan_description {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+.hob {
+	display: flex;
+    flex-wrap: wrap;
+}
+
+.hob .hob_info {
+    -ms-flex: 0 0 33.3%;
+    flex: 0 0 33.3%;
+    max-width: 33%;
+}
+
+.hob .hob_description {
+	flex: 0 0 66.6%;
+    max-width: 66.6%;
+}
+
+input[type=text], select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  resize: vertical;
+}
+
+input[type=email], select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  resize: vertical;
+}
+
+input[type=password], select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  resize: vertical;
+}
+
+input[type=submit] {
+  background-color: #04AA6D;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}

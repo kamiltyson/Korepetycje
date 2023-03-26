@@ -1,0 +1,15 @@
+Dziecko 1 Plac1
+Dziecko 2 Plac1
+Dziecko 3 Plac1
+Dziecko 4 Plac1
+Dziecko 5 Plac2
+Dziecko 6 Plac2
+Dziecko 7 Plac2
+Dziecko 8 Plac2
+Dziecko 9 Plac2
+Dziecko 10 Plac3
+Dziecko 11 Plac3
+Dziecko 12 Plac3
+Dziecko 13 Plac3
+Dziecko 14 Plac3
+Dziecko 15 Plac3

@@ -9,23 +9,39 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -36,8 +52,23 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import com.opencsv.CSVWriter;
 import com.toedter.calendar.JDateChooser;
 
 class DbConnectorLogowanie2{
@@ -647,7 +678,7 @@ class DbSerwisGUI extends JPanel{
 
 
 class DbSamochody extends JPanel{
-	
+
 	private static String ID;
 	private static String Nazwa;
 	private static Boolean WymianaOleju;
@@ -700,18 +731,27 @@ class DbSamochody extends JPanel{
 	private JTextField jtxtKontrolaZawiasow;
 	private JTextField jtxtRegulacjaHamulcaPostojowego;
 	private JTextField jtxtKontrolaLuzowZaworowych;
-	private JButton btnAdd;
-	private JButton btnUpdate;
-	private JButton btnDelete;
+	private JLabel lblAdd;
+	private JLabel lblUpdate;
+	private JLabel lblDelete;
+	private JLabel lblExport;
+	private JLabel lblImport;
+	private JLabel lblChoose;
 	private JScrollPane scrollPane;
 	private JScrollPane scrollChoice;
 	private JTable table;
 	private static DefaultTableModel Model = new DefaultTableModel();
 	private JPanel panelChoice;
 	private Graphics2D g2;
-	private Image Cars;
+	private Image Cars, Car_picture;
+	private ImageIcon format;
+	private static String URL = "jdbc:postgresql://localhost/postgres";
 	private static String login;
 	private static String password;
+	private File file = null;
+	private Connection con;
+	private PreparedStatement pst;
+	private byte[] imagedata;
 	
 	private static void Read() {
 		try {
@@ -785,11 +825,16 @@ class DbSamochody extends JPanel{
 		g2.drawImage(Cars, 0, 0, 1500, 800, null);
 		g2.setColor(Color.black);
 		g2.fillRect(678, 36, 164, 40);
+		if (Car_picture != null) {
+			g2.drawImage(Car_picture, 650, 400, 450, 300, null);
+		}
 	}
 	
 	private void initialize() {
 		
 		setLayout(null);
+		
+		Connect();
 		
 		TopLeftCorner();
 		
@@ -798,6 +843,19 @@ class DbSamochody extends JPanel{
 		Buttons();
 		
 		Table();
+		
+		ChoosePicture();
+		
+	}
+	
+	private void Connect() {
+
+		try {
+			con  = DriverManager.getConnection(URL, login, password);
+			System.out.println("Po³¹czono");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 	}
 	
@@ -847,6 +905,17 @@ class DbSamochody extends JPanel{
 			            	jtxtRegulacjaHamulcaPostojowego.setText(Boolean.toString(result.getBoolean("RegulacjaHamulcaPostojowego")));
 			            	jtxtKontrolaLuzowZaworowych.setText(Boolean.toString(result.getBoolean("KontrolaLuzowZaworowych")));
 			                
+			            	if (result.getString("Obrazek") != null) {
+			            		imagedata = result.getBytes("Obrazek");
+			            		format = new ImageIcon(imagedata);
+			            		Car_picture = format.getImage();
+			            		repaint();
+			            		System.out.println("tak");
+			            	}
+			            	else {
+			            		Car_picture = null;
+			            		repaint();
+			            	}
 			            }  
 			            else{
 			            	
@@ -866,7 +935,8 @@ class DbSamochody extends JPanel{
 			            	jtxtKontrolaZawiasow.setText("false");
 			            	jtxtRegulacjaHamulcaPostojowego.setText("false");
 			            	jtxtKontrolaLuzowZaworowych.setText("false");
-			            	
+			            	Car_picture = null;
+		            		repaint();
 			            }
 			            
 			        }
@@ -891,6 +961,8 @@ class DbSamochody extends JPanel{
 	            	jtxtKontrolaZawiasow.setText("false");
 	            	jtxtRegulacjaHamulcaPostojowego.setText("false");
 	            	jtxtKontrolaLuzowZaworowych.setText("false");
+	            	Car_picture = null;
+            		repaint();
 		        }
 			}
 		});
@@ -910,7 +982,8 @@ class DbSamochody extends JPanel{
 	
 	private void ChoiceList(){
 		scrollChoice = new JScrollPane();
-		scrollChoice.setBounds(53, 322, 501, 333);
+		scrollChoice.setBounds(53, 322, 521, 333);
+		scrollChoice.setBorder(null);
 		
 		panelChoice = new JPanel();
 		panelChoice.setLayout(null);
@@ -1104,17 +1177,18 @@ class DbSamochody extends JPanel{
 	}
 	
 	private void Buttons() {
-		btnAdd = new JButton("Add");
-		btnAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnAdd.setBounds(53, 655, 130, 57);
-		btnAdd.setOpaque(false);
-		btnAdd.setContentAreaFilled(false);
-		btnAdd.setForeground(Color.white);
-		add(btnAdd);
-		btnAdd.addActionListener(new ActionListener() {
+		
+		lblAdd = new JLabel("Add");
+		lblAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblAdd.setBounds(53, 655, 130, 57);
+		lblAdd.setOpaque(false);
+		lblAdd.setForeground(Color.white);
+		lblAdd.setHorizontalAlignment(JLabel.CENTER);
+		add(lblAdd);
+		
+		lblAdd.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "INSERT INTO public.samochody (ID, Nazwa, WymianaOleju, WymianaFiltru, WymianaWycieraczek, KontrolaHamulcow, KontrolaZawieszenia,  KontrolaOpon, KontrolaPlynow, KontrolaWyciekow, KontrolaSwiec, KontrolaPaskow, KonserwacjaZaciskowHamulocowych, KontrolaZamkow, KontrolaZawiasow, RegulacjaHamulcaPostojowego, KontrolaLuzowZaworowych) "
@@ -1135,6 +1209,24 @@ class DbSamochody extends JPanel{
 							jtxtKontrolaZawiasow.getText() + "', '" + 
 							jtxtRegulacjaHamulcaPostojowego.getText() + "', '" + 
 							jtxtKontrolaLuzowZaworowych.getText() + "')";
+					if (file != null) {
+						try {
+							InputStream is = new FileInputStream(file);
+							pst = con.prepareStatement("UPDATE public.samochody SET Obrazek = ? WHERE ID = " + jtxtID.getText());
+							pst.setBinaryStream(1, is, (int)file.length());
+							pst.executeUpdate();
+							is.close();
+							file = null;
+						} catch (FileNotFoundException e1) {
+							e1.printStackTrace();
+						} catch (SQLException e1) {
+
+							e1.printStackTrace();
+						} catch (IOException e1) {
+
+							e1.printStackTrace();
+						}
+					}
 					new SerwisQueryExecutor(login, password).executeQuery(query);
 					query = "INSERT INTO public.zlecenia (IDSamochodu, Nazwa) "
 							+ "VALUES ('" + jtxtID.getText() + "', '" + 
@@ -1164,19 +1256,31 @@ class DbSamochody extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
 		});
 		
-		btnUpdate = new JButton("Update");
-		btnUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnUpdate.setBounds(238, 655, 130, 57);
-		btnUpdate.setOpaque(false);
-		btnUpdate.setContentAreaFilled(false);
-		btnUpdate.setForeground(Color.white);
-		add(btnUpdate);
-		btnUpdate.addActionListener(new ActionListener() {
+		lblUpdate = new JLabel("Update");
+		lblUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblUpdate.setBounds(238, 655, 130, 57);
+		lblUpdate.setOpaque(false);
+		lblUpdate.setForeground(Color.white);
+		lblUpdate.setHorizontalAlignment(JLabel.CENTER);
+		add(lblUpdate);
+		lblUpdate.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "UPDATE public.samochody"
@@ -1199,6 +1303,24 @@ class DbSamochody extends JPanel{
 							+ " KontrolaLuzowZaworowych = "  + "'" + jtxtKontrolaLuzowZaworowych.getText() + "'"
 							+ " WHERE ID = " + jtxtID.getText();
 					new SerwisQueryExecutor(login, password).executeQuery(query);
+					if (file != null) {
+						try {
+							InputStream is = new FileInputStream(file);
+							pst = con.prepareStatement("UPDATE public.samochody SET Obrazek = ? WHERE ID = " + jtxtID.getText());
+							pst.setBinaryStream(1, is, (int)file.length());
+							pst.executeUpdate();
+							is.close();
+							file = null;
+						} catch (FileNotFoundException e1) {
+							e1.printStackTrace();
+						} catch (SQLException e1) {
+
+							e1.printStackTrace();
+						} catch (IOException e1) {
+
+							e1.printStackTrace();
+						}
+					}
 					query = "UPDATE public.zlecenia"
 					+ " SET"
 					+ " Nazwa = " + "'" + jtxtNazwa.getText() + "'"
@@ -1228,19 +1350,31 @@ class DbSamochody extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
 		});
 		
-		btnDelete = new JButton("Delete");
-		btnDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnDelete.setBounds(407, 655, 130, 57);
-		btnDelete.setOpaque(false);
-		btnDelete.setContentAreaFilled(false);
-		btnDelete.setForeground(Color.white);
-		add(btnDelete);
-		btnDelete.addActionListener(new ActionListener() {
+		lblDelete = new JLabel("Delete");
+		lblDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblDelete.setBounds(407, 655, 130, 57);
+		lblDelete.setOpaque(false);
+		lblDelete.setForeground(Color.white);
+		lblDelete.setHorizontalAlignment(JLabel.CENTER);
+		add(lblDelete);
+		lblDelete.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "DELETE FROM public.samochody WHERE ID = " + jtxtID.getText();
@@ -1271,12 +1405,349 @@ class DbSamochody extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
 		});
+		
+		lblExport = new JLabel("Export");
+		lblExport.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblExport.setBounds(53, 732, 130, 57);
+		lblExport.setOpaque(false);
+		lblExport.setForeground(Color.white);
+		lblExport.setHorizontalAlignment(JLabel.CENTER);
+		add(lblExport);
+		lblExport.addMouseListener(new MouseListener() {
+			
+			public void mouseClicked(MouseEvent e) {
+				try {
+					JFileChooser chooser = new JFileChooser("C:\\Users\\Predator\\Downloads");
+					chooser.setAcceptAllFileFilterUsed(false);
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter("csv",
+				            "csv"));
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter("json",
+				            "json"));
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter("xml",
+				            "xml"));
+				    int returnVal = chooser.showSaveDialog(new JFrame());
+				    
+				    if (returnVal==JFileChooser.APPROVE_OPTION) {
+				    	
+				    	File file = chooser.getSelectedFile();
+						String StrSavePath = file.getAbsolutePath();
+						String filter = chooser.getFileFilter().getDescription();
+						if (filter.equals("csv")) {
+							if (!StrSavePath.contains(".csv")){
+								StrSavePath+=".csv";
+							}
+							CSVWriter writer;
+							
+					    	writer = new CSVWriter(new FileWriter(StrSavePath));
+							Boolean includeHeaders = true;
+							ResultSet result = new SerwisQueryExecutor(login, password).executeSelect("SELECT * From public.samochody");
+							writer.writeAll(result, includeHeaders);
+							writer.close();
+						}
+						else if(filter.equals("json")) {
+							if (!StrSavePath.contains(".json")){
+								StrSavePath+=".json";
+							}
+							JSONObject jsonObject = new JSONObject();
+							
+							JSONArray array = new JSONArray();
+						    ResultSet result = new SerwisQueryExecutor(login, password).executeSelect("SELECT * From public.samochody");
+
+						    while(result.next()) {
+								JSONObject record = new JSONObject();
+
+								record.put("ID", result.getInt("ID"));
+								record.put("Nazwa", result.getString("Nazwa").replaceAll("\"", ""));
+								record.put("WymianaOleju", result.getBoolean("WymianaOleju"));
+								record.put("WymianaFiltru", result.getBoolean("WymianaFiltru"));
+								record.put("WymianaWycieraczek", result.getBoolean("WymianaWycieraczek"));
+								record.put("KontrolaHamulcow", result.getBoolean("KontrolaHamulcow"));
+								record.put("KontrolaZawieszenia", result.getBoolean("KontrolaZawieszenia"));
+								record.put("KontrolaOpon", result.getBoolean("KontrolaOpon"));
+								record.put("KontrolaPlynow", result.getBoolean("KontrolaPlynow"));
+								record.put("KontrolaWyciekow", result.getBoolean("KontrolaWyciekow"));
+								record.put("KontrolaSwiec", result.getBoolean("KontrolaSwiec"));
+								record.put("KontrolaPaskow", result.getBoolean("KontrolaPaskow"));
+								record.put("KonserwacjaZaciskowHamulocowych", result.getBoolean("KonserwacjaZaciskowHamulocowych"));
+								record.put("KontrolaZamkow", result.getBoolean("KontrolaZamkow"));
+								record.put("KontrolaZawiasow", result.getBoolean("KontrolaZawiasow"));
+								record.put("RegulacjaHamulcaPostojowego", result.getBoolean("RegulacjaHamulcaPostojowego"));
+								record.put("KontrolaLuzowZaworowych", result.getBoolean("KontrolaLuzowZaworowych"));
+								array.add(record);
+							}
+							jsonObject.put("samochody",array);
+							FileWriter writer = new FileWriter(StrSavePath);
+							writer.write(jsonObject.toJSONString());
+							writer.close();
+							
+						}
+						else if(filter.equals("xml")) {
+							if (!StrSavePath.contains(".xml")){
+								StrSavePath+=".xml";
+							}
+							
+							ResultSet result = new SerwisQueryExecutor(login, password).executeSelect("SELECT * From public.samochody");
+							
+							SamochodyXML samochody = new SamochodyXML();
+							samochody.setSamochody(new ArrayList<SamochodXML>());
+							while(result.next()) {
+								SamochodXML prostySamochod = new SamochodXML();
+								prostySamochod.setID(result.getInt("ID"));
+								prostySamochod.setNazwa(result.getString("Nazwa"));
+								prostySamochod.setWymianaOleju(result.getBoolean("WymianaOleju"));
+								prostySamochod.setWymianaFiltru(result.getBoolean("WymianaFiltru"));
+								prostySamochod.setWymianaWycieraczek(result.getBoolean("WymianaWycieraczek"));
+								prostySamochod.setKontrolaHamulcow(result.getBoolean("KontrolaHamulcow"));
+								prostySamochod.setKontrolaZawieszenia(result.getBoolean("KontrolaZawieszenia"));
+								prostySamochod.setKontrolaOpon(result.getBoolean("KontrolaOpon"));
+								prostySamochod.setKontrolaPlynow(result.getBoolean("KontrolaPlynow"));
+								prostySamochod.setKontrolaWyciekow(result.getBoolean("KontrolaWyciekow"));
+								prostySamochod.setKontrolaSwiec(result.getBoolean("KontrolaSwiec"));;
+								prostySamochod.setKontrolaPaskow(result.getBoolean("KontrolaPaskow"));
+								prostySamochod.setKonserwacjaZaciskowHamulocowych(result.getBoolean("KonserwacjaZaciskowHamulocowych"));
+								prostySamochod.setKontrolaZamkow(result.getBoolean("KontrolaZamkow"));
+								prostySamochod.setKontrolaZawiasow(result.getBoolean("KontrolaZawiasow"));
+								prostySamochod.setRegulacjaHamulcaPostojowego(result.getBoolean("RegulacjaHamulcaPostojowego"));
+								prostySamochod.setKontrolaLuzowZaworowych(result.getBoolean("KontrolaLuzowZaworowych"));
+								samochody.getSamochody().add(prostySamochod);
+							}
+							
+							
+							JAXBContext jaxbContext = JAXBContext.newInstance( SamochodyXML.class );
+							Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+							 
+							jaxbMarshaller.setProperty( Marshaller.JAXB_FORMATTED_OUTPUT, true );
+							 
+							jaxbMarshaller.marshal( samochody, new File( StrSavePath ) );
+							jaxbMarshaller.marshal( samochody, System.out );
+						}
+				    }
+				    
+				} catch (IOException | SQLException | JAXBException e1) {
+					e1.printStackTrace();
+				}
+			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
+		});
+		
+		lblImport = new JLabel("Import");
+		lblImport.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblImport.setBounds(238, 732, 130, 57);
+		lblImport.setOpaque(false);
+		lblImport.setForeground(Color.white);
+		lblImport.setHorizontalAlignment(JLabel.CENTER);
+		add(lblImport);
+		lblImport.addMouseListener(new MouseListener() {
+			
+			public void mouseClicked(MouseEvent e) {
+				JFileChooser chooser = new JFileChooser("C:\\Users\\Predator\\Downloads");
+				chooser.setAcceptAllFileFilterUsed(false);
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("csv",
+			            "csv"));
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("json",
+			            "json"));
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("xml",
+			            "xml"));
+				int returnVal = chooser.showOpenDialog(new JFrame());
+				
+				if (returnVal==JFileChooser.APPROVE_OPTION) {
+					
+					File file = chooser.getSelectedFile();
+					String StrOpenPath = file.getAbsolutePath();
+					if (StrOpenPath.contains(".csv")){
+						Scanner scanner;
+						
+						try {
+							scanner = new Scanner(new File(StrOpenPath));
+						
+							scanner.nextLine();
+							
+							while(scanner.hasNextLine()) {
+								String linia = scanner.nextLine();
+								linia = linia.replaceAll("\"", "");
+
+								String query = "INSERT INTO public.samochody (ID, Nazwa, WymianaOleju, WymianaFiltru, WymianaWycieraczek, KontrolaHamulcow, KontrolaZawieszenia,  KontrolaOpon, KontrolaPlynow, KontrolaWyciekow, KontrolaSwiec, KontrolaPaskow, KonserwacjaZaciskowHamulocowych, KontrolaZamkow, KontrolaZawiasow, RegulacjaHamulcaPostojowego, KontrolaLuzowZaworowych) "
+										+ "VALUES ('" + linia.split(",")[0] + "', '" + 
+										linia.split(",")[1] + "', '" + 
+										linia.split(",")[2] + "', '" + 
+										linia.split(",")[3] + "', '" + 
+										linia.split(",")[4] + "', '" + 
+										linia.split(",")[5] + "', '" + 
+										linia.split(",")[6] + "', '" + 
+										linia.split(",")[7] + "', '" + 
+										linia.split(",")[8] + "', '" + 
+										linia.split(",")[9] + "', '" + 
+										linia.split(",")[10] + "', '" + 
+										linia.split(",")[11] + "', '" + 
+										linia.split(",")[12] + "', '" + 
+										linia.split(",")[13] + "', '" + 
+										linia.split(",")[14] + "', '" + 
+										linia.split(",")[15] + "', '" + 
+										linia.split(",")[16] + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+								query = "INSERT INTO public.zlecenia (IDSamochodu, Nazwa) "
+										+ "VALUES ('" + linia.split(",")[0] + "', '" + 
+										linia.split(",")[1] + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+							}
+							
+							scanner.close();
+				        	Model.setRowCount(0);
+				        	Read();
+							
+						} catch (FileNotFoundException e1) {
+
+							e1.printStackTrace();
+						}
+					}
+					else if (StrOpenPath.contains(".json")){
+						
+						File jsonInputFile = new File(StrOpenPath);
+				        InputStream is;
+
+						try {
+							is = new FileInputStream(jsonInputFile);
+
+				            JsonReader reader = Json.createReader(is);
+
+				            JsonObject empObj = reader.readObject();
+				            reader.close();
+
+				            JsonArray arrObj = empObj.getJsonArray("samochody");
+				            int i = 0;
+				            for(JsonValue value : arrObj){
+				            	JsonObject jsonObject = (JsonObject) value;
+										
+						        String query = "INSERT INTO public.samochody (ID, Nazwa, WymianaOleju, WymianaFiltru, WymianaWycieraczek, KontrolaHamulcow, KontrolaZawieszenia,  KontrolaOpon, KontrolaPlynow, KontrolaWyciekow, KontrolaSwiec, KontrolaPaskow, KonserwacjaZaciskowHamulocowych, KontrolaZamkow, KontrolaZawiasow, RegulacjaHamulcaPostojowego, KontrolaLuzowZaworowych) "
+										+ "VALUES ('" + jsonObject.get("ID") + "', '" + 
+										jsonObject.get("Nazwa") + "', '" + 
+										jsonObject.get("WymianaOleju") + "', '" + 
+										jsonObject.get("WymianaFiltru") + "', '" + 
+										jsonObject.get("WymianaWycieraczek") + "', '" + 
+										jsonObject.get("KontrolaHamulcow") + "', '" + 
+										jsonObject.get("KontrolaZawieszenia") + "', '" + 
+										jsonObject.get("KontrolaOpon") + "', '" + 
+										jsonObject.get("KontrolaPlynow") + "', '" + 
+										jsonObject.get("KontrolaWyciekow") + "', '" + 
+										jsonObject.get("KontrolaSwiec") + "', '" + 
+										jsonObject.get("KontrolaPaskow") + "', '" + 
+										jsonObject.get("KonserwacjaZaciskowHamulocowych") + "', '" + 
+										jsonObject.get("KontrolaZamkow") + "', '" + 
+										jsonObject.get("KontrolaZawiasow") + "', '" + 
+										jsonObject.get("RegulacjaHamulcaPostojowego") + "', '" + 
+										jsonObject.get("KontrolaLuzowZaworowych") + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+								query = "INSERT INTO public.zlecenia (IDSamochodu, Nazwa) "
+										+ "VALUES ('" + jsonObject.get("ID") + "', '" + 
+										jsonObject.get("Nazwa") + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+				            }
+				        	Model.setRowCount(0);
+				        	Read();
+
+						} catch (IOException e1) {
+
+							e1.printStackTrace();
+						} 
+				        
+						
+					}
+					else if (StrOpenPath.contains(".xml")){
+						
+
+						try {
+							JAXBContext jaxbContext = JAXBContext.newInstance( SamochodyXML.class );
+							Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+							
+							SamochodyXML samochody = (SamochodyXML) jaxbUnmarshaller.unmarshal( new File(StrOpenPath) );
+							
+							for(SamochodXML samochod : samochody.getSamochody())
+							  {
+								String query = "INSERT INTO public.samochody (ID, Nazwa, WymianaOleju, WymianaFiltru, WymianaWycieraczek, KontrolaHamulcow, KontrolaZawieszenia,  KontrolaOpon, KontrolaPlynow, KontrolaWyciekow, KontrolaSwiec, KontrolaPaskow, KonserwacjaZaciskowHamulocowych, KontrolaZamkow, KontrolaZawiasow, RegulacjaHamulcaPostojowego, KontrolaLuzowZaworowych) "
+										+ "VALUES ('" + samochod.getId() + "', '" + 
+										samochod.getNazwa() + "', '" + 
+										samochod.getWymianaOleju() + "', '" + 
+										samochod.getWymianaFiltru() + "', '" + 
+										samochod.getWymianaWycieraczek() + "', '" + 
+										samochod.getKontrolaHamulcow() + "', '" + 
+										samochod.getKontrolaZawieszenia() + "', '" + 
+										samochod.getKontrolaOpon() + "', '" + 
+										samochod.getKontrolaPlynow() + "', '" + 
+										samochod.getKontrolaWyciekow() + "', '" + 
+										samochod.getKontrolaSwiec() + "', '" + 
+										samochod.getKontrolaPaskow() + "', '" + 
+										samochod.getKonserwacjaZaciskowHamulocowych() + "', '" + 
+										samochod.getKontrolaZamkow() + "', '" + 
+										samochod.getKontrolaZawiasow() + "', '" + 
+										samochod.getRegulacjaHamulcaPostojowego() + "', '" + 
+										samochod.getKontrolaLuzowZaworowych() + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+								query = "INSERT INTO public.zlecenia (IDSamochodu, Nazwa) "
+										+ "VALUES ('" + samochod.getId() + "', '" + 
+										samochod.getNazwa() + "')";
+								new SerwisQueryExecutor(login, password).executeQuery(query);
+							  }
+						
+							Model.setRowCount(0);
+				        	Read();
+				        	
+						} catch (JAXBException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+
+					}
+				}
+
+			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
+		});
+		
 	}
 	
 	private void Table(){
 		scrollPane = new JScrollPane();
-		scrollPane.setBounds(598, 100, 830, 612);
+		scrollPane.setBounds(598, 100, 830, 212);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -1290,9 +1761,262 @@ class DbSamochody extends JPanel{
 		scrollPane.getViewport().setOpaque(false);
 	}
 	
+	private void ChoosePicture() {
+		
+		lblChoose = new JLabel("Choose");
+		lblChoose.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblChoose.setBounds(1153, 505, 130, 57);
+		lblChoose.setOpaque(false);
+		lblChoose.setForeground(Color.white);
+		add(lblChoose);
+		
+		lblChoose.addMouseListener(new MouseListener() {
+			
+			public void mouseClicked(MouseEvent e) {
+				if(!jtxtID.getText().isBlank()) {
+					
+					JFileChooser chooser = new JFileChooser("C:\\Users\\Predator\\Downloads");
+					chooser.setAcceptAllFileFilterUsed(false);
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter("jpg",
+				            "jpg"));
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter("png",
+				            "png"));
+					int returnVal = chooser.showOpenDialog(new JFrame());
+					
+					if (returnVal==JFileChooser.APPROVE_OPTION) {
+						
+						file = chooser.getSelectedFile();
+						String StrOpenPath = file.getAbsolutePath();
+						
+						try {
+							Car_picture = ImageIO.read(file);
+							repaint();
+
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					}
+				}
+				else{
+					JOptionPane.showMessageDialog(null, "ID jest puste");
+		        }
+			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+			
+		});
+		
+	}
+	
 	public Dimension getPreferredSize() {
 		return new Dimension(1500,800);
 	}
+}
+
+@XmlRootElement( name = "SAMOCHODY" )
+@XmlAccessorType(XmlAccessType.FIELD)
+class SamochodyXML{
+	
+	@XmlElement( name = "SAMOCHOD" )
+	private List<SamochodXML> samochody = null;
+	
+	public List<SamochodXML> getSamochody(){
+		return samochody;
+	}
+	
+	public void setSamochody(List<SamochodXML> samochody) {
+		this.samochody = samochody;
+	}
+
+}
+
+@XmlRootElement( name = "SAMOCHOD" )
+@XmlAccessorType (XmlAccessType.FIELD)
+class SamochodXML{
+	
+	private int id;
+	private String nazwa;
+	private boolean wymianaOleju;
+	private boolean wymianaFiltru;
+	private boolean wymianaWycieraczek;
+	private boolean kontrolaHamulcow;
+	private boolean kontrolaZawieszenia;
+	private boolean kontrolaOpon;
+	private boolean kontrolaPlynow;
+	private boolean kontrolaWyciekow;
+	private boolean kontrolaSwiec;
+	private boolean kontrolaPaskow;
+	private boolean konserwacjaZaciskowHamulocowych;
+	private boolean kontrolaZamkow;
+	private boolean kontrolaZawiasow;
+	private boolean regulacjaHamulcaPostojowego;
+	private boolean kontrolaLuzowZaworowych;
+	
+
+    public int getId() {
+        return this.id;
+    }
+	 
+	public void setID( int id )
+	{
+		this.id = id;
+	}
+	
+    public String getNazwa() {
+        return this.nazwa;
+    }
+	
+	public void setNazwa( String nazwa )
+	{
+		this.nazwa = nazwa;
+	}
+	
+    public boolean getWymianaOleju() {
+        return this.wymianaOleju;
+    }
+	
+	public void setWymianaOleju( boolean wymianaOleju )
+	{
+		this.wymianaOleju = wymianaOleju;
+	}
+	
+    public boolean getWymianaFiltru() {
+        return this.wymianaFiltru;
+    }
+	
+	public void setWymianaFiltru( boolean wymianaFiltru )
+	{
+		this.wymianaFiltru = wymianaFiltru;
+	}
+	
+    public boolean getWymianaWycieraczek() {
+        return this.wymianaWycieraczek;
+    }
+	
+	public void setWymianaWycieraczek( boolean wymianaWycieraczek )
+	{
+		this.wymianaWycieraczek = wymianaWycieraczek;
+	}
+	
+    public boolean getKontrolaHamulcow() {
+        return this.kontrolaHamulcow;
+    }
+	
+	public void setKontrolaHamulcow( boolean kontrolaHamulcow )
+	{
+		this.kontrolaHamulcow = kontrolaHamulcow;
+	}
+	
+    public boolean getKontrolaZawieszenia() {
+        return this.kontrolaZawieszenia;
+    }
+	
+	public void setKontrolaZawieszenia( boolean kontrolaZawieszenia )
+	{
+		this.kontrolaZawieszenia = kontrolaZawieszenia;
+	}
+	
+    public boolean getKontrolaOpon() {
+        return this.kontrolaOpon;
+    }
+	
+	public void setKontrolaOpon( boolean kontrolaOpon )
+	{
+		this.kontrolaOpon = kontrolaOpon;
+	}
+	
+    public boolean getKontrolaPlynow() {
+        return this.kontrolaPlynow;
+    }
+	
+	public void setKontrolaPlynow( boolean kontrolaPlynow )
+	{
+		this.kontrolaPlynow = kontrolaPlynow;
+	}
+	
+    public boolean getKontrolaWyciekow() {
+        return this.kontrolaWyciekow;
+    }
+	
+	public void setKontrolaWyciekow( boolean kontrolaWyciekow )
+	{
+		this.kontrolaWyciekow = kontrolaWyciekow;
+	}
+	
+    public boolean getKontrolaSwiec() {
+        return this.kontrolaSwiec;
+	}
+
+	public void setKontrolaSwiec( boolean kontrolaSwiec )
+	{
+		this.kontrolaSwiec = kontrolaSwiec;
+	}
+	
+    public boolean getKontrolaPaskow() {
+        return this.kontrolaPaskow;
+	}
+	
+	public void setKontrolaPaskow( boolean kontrolaPaskow )
+	{
+		this.kontrolaPaskow = kontrolaPaskow;
+	}
+	
+    public boolean getKonserwacjaZaciskowHamulocowych() {
+        return this.konserwacjaZaciskowHamulocowych;
+	}
+
+	public void setKonserwacjaZaciskowHamulocowych( boolean konserwacjaZaciskowHamulocowych )
+	{
+		this.konserwacjaZaciskowHamulocowych = konserwacjaZaciskowHamulocowych;
+	}
+	
+    public boolean getKontrolaZamkow() {
+        return this.kontrolaZamkow;
+	}
+
+	public void setKontrolaZamkow( boolean kontrolaZamkow )
+	{
+		this.kontrolaZamkow = kontrolaZamkow;
+	}
+	
+    public boolean getKontrolaZawiasow() {
+        return this.kontrolaZawiasow;
+	}
+	
+	public void setKontrolaZawiasow( boolean kontrolaZawiasow )
+	{
+		this.kontrolaZawiasow = kontrolaZawiasow;
+	}
+	
+    public boolean getRegulacjaHamulcaPostojowego() {
+        return this.regulacjaHamulcaPostojowego;
+	}
+	
+	public void setRegulacjaHamulcaPostojowego( boolean regulacjaHamulcaPostojowego )
+	{
+		this.regulacjaHamulcaPostojowego = regulacjaHamulcaPostojowego;
+	}
+	
+    public boolean getKontrolaLuzowZaworowych() {
+        return this.kontrolaLuzowZaworowych;
+	}
+
+	public void setKontrolaLuzowZaworowych( boolean kontrolaLuzowZaworowych )
+	{
+		this.kontrolaLuzowZaworowych = kontrolaLuzowZaworowych;
+	}
+	
 }
 
 class DbStanowiska extends JPanel{
@@ -1308,10 +2032,10 @@ class DbStanowiska extends JPanel{
 	private JTextField jtxtID;
 	private JTextField jtxtNazwa;
 	private static JTextField jtxtIDSamochodu;
-	private JButton btnCarSearch;
-	private JButton btnAdd;
-	private JButton btnUpdate;
-	private JButton btnDelete;
+	private JLabel lblCarSearch;
+	private JLabel lblAdd;
+	private JLabel lblUpdate;
+	private JLabel lblDelete;
 	private JScrollPane scrollPane;
 	private JTable table;
 	private static DefaultTableModel Model = new DefaultTableModel();
@@ -1472,16 +2196,16 @@ class DbStanowiska extends JPanel{
 	
 	private void Buttons() {
 		
-		btnCarSearch = new JButton("+");
-		btnCarSearch.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnCarSearch.setBounds(543, 319, 49, 40);
-		btnCarSearch.setOpaque(false);
-		btnCarSearch.setContentAreaFilled(false);
-		btnCarSearch.setForeground(Color.white);
-		add(btnCarSearch);
-		btnCarSearch.addActionListener(new ActionListener() {
+		lblCarSearch = new JLabel("+");
+		lblCarSearch.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblCarSearch.setBounds(543, 319, 49, 40);
+		lblCarSearch.setOpaque(false);
+		lblCarSearch.setForeground(Color.white);
+		lblCarSearch.setHorizontalAlignment(JLabel.CENTER);
+		add(lblCarSearch);
+		lblCarSearch.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				nextframe = new JFrame();
 				nextframe.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 				nextframe.addWindowListener(new WindowAdapter() {
@@ -1496,19 +2220,31 @@ class DbStanowiska extends JPanel{
 				nextframe.setVisible(true);
 				nextframe.pack();
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnAdd = new JButton("Add");
-		btnAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnAdd.setBounds(53, 655, 130, 57);
-		btnAdd.setOpaque(false);
-		btnAdd.setContentAreaFilled(false);
-		btnAdd.setForeground(Color.white);
-		add(btnAdd);
-		btnAdd.addActionListener(new ActionListener() {
+		lblAdd = new JLabel("Add");
+		lblAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblAdd.setBounds(53, 655, 130, 57);
+		lblAdd.setOpaque(false);
+		lblAdd.setForeground(Color.white);
+		lblAdd.setHorizontalAlignment(JLabel.CENTER);
+		add(lblAdd);
+		lblAdd.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "INSERT INTO public.stanowiska (ID, Nazwa, IDSamochodu) "
@@ -1526,19 +2262,31 @@ class DbStanowiska extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnUpdate = new JButton("Update");
-		btnUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnUpdate.setBounds(238, 655, 130, 57);
-		btnUpdate.setOpaque(false);
-		btnUpdate.setContentAreaFilled(false);
-		btnUpdate.setForeground(Color.white);
-		add(btnUpdate);
-		btnUpdate.addActionListener(new ActionListener() {
+		lblUpdate = new JLabel("Update");
+		lblUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblUpdate.setBounds(238, 655, 130, 57);
+		lblUpdate.setOpaque(false);
+		lblUpdate.setHorizontalAlignment(JLabel.CENTER);
+		lblUpdate.setForeground(Color.white);
+		add(lblUpdate);
+		lblUpdate.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "UPDATE public.stanowiska"
@@ -1557,19 +2305,31 @@ class DbStanowiska extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnDelete = new JButton("Delete");
-		btnDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnDelete.setBounds(407, 655, 130, 57);
-		btnDelete.setOpaque(false);
-		btnDelete.setContentAreaFilled(false);
-		btnDelete.setForeground(Color.white);
-		add(btnDelete);
-		btnDelete.addActionListener(new ActionListener() {
+		lblDelete = new JLabel("Delete");
+		lblDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblDelete.setBounds(407, 655, 130, 57);
+		lblDelete.setOpaque(false);
+		lblDelete.setHorizontalAlignment(JLabel.CENTER);
+		lblDelete.setForeground(Color.white);
+		add(lblDelete);
+		lblDelete.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "DELETE FROM public.stanowiska WHERE ID = " + jtxtID.getText();
@@ -1584,12 +2344,28 @@ class DbStanowiska extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
+
 	}
 	
 	private void Table() {
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(598, 100, 830, 612);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -1631,10 +2407,10 @@ class DbPracownicy extends JPanel{
 	private JTextField jtxtPlec;
 	private JTextField jtxtWiek;
 	private static JTextField jtxtIDSamochodu;
-	private JButton btnCarSearch;
-	private JButton btnAdd;
-	private JButton btnUpdate;
-	private JButton btnDelete;
+	private JLabel lblCarSearch;
+	private JLabel lblAdd;
+	private JLabel lblUpdate;
+	private JLabel lblDelete;
 	private JScrollPane scrollPane;
 	private JTable table;
 	private static DefaultTableModel Model = new DefaultTableModel();
@@ -1847,16 +2623,16 @@ class DbPracownicy extends JPanel{
 	
 	private void Buttons() {
 		
-		btnCarSearch = new JButton("+");
-		btnCarSearch.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnCarSearch.setBounds(543, 583, 49, 40);
-		btnCarSearch.setOpaque(false);
-		btnCarSearch.setContentAreaFilled(false);
-		btnCarSearch.setForeground(Color.white);
-		add(btnCarSearch);
-		btnCarSearch.addActionListener(new ActionListener() {
+		lblCarSearch = new JLabel("+");
+		lblCarSearch.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblCarSearch.setBounds(543, 583, 49, 40);
+		lblCarSearch.setOpaque(false);
+		lblCarSearch.setForeground(Color.white);
+		lblCarSearch.setHorizontalAlignment(JLabel.CENTER);
+		add(lblCarSearch);
+		lblCarSearch.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				nextframe = new JFrame();
 				nextframe.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 				nextframe.addWindowListener(new WindowAdapter() {
@@ -1871,19 +2647,31 @@ class DbPracownicy extends JPanel{
 				nextframe.setVisible(true);
 				nextframe.pack();
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnAdd = new JButton("Add");
-		btnAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnAdd.setBounds(53, 655, 130, 57);
-		btnAdd.setOpaque(false);
-		btnAdd.setContentAreaFilled(false);
-		btnAdd.setForeground(Color.white);
-		add(btnAdd);
-		btnAdd.addActionListener(new ActionListener() {
+		lblAdd = new JLabel("Add");
+		lblAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblAdd.setBounds(53, 655, 130, 57);
+		lblAdd.setOpaque(false);
+		lblAdd.setForeground(Color.white);
+		lblAdd.setHorizontalAlignment(JLabel.CENTER);
+		add(lblAdd);
+		lblAdd.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "INSERT INTO public.pracownicy (ID, Imie, Nazwisko, Plec, Wiek, IDSamochodu) "
@@ -1907,19 +2695,31 @@ class DbPracownicy extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnUpdate = new JButton("Update");
-		btnUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnUpdate.setBounds(238, 655, 130, 57);
-		btnUpdate.setOpaque(false);
-		btnUpdate.setContentAreaFilled(false);
-		btnUpdate.setForeground(Color.white);
-		add(btnUpdate);
-		btnUpdate.addActionListener(new ActionListener() {
+		lblUpdate = new JLabel("Update");
+		lblUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblUpdate.setBounds(238, 655, 130, 57);
+		lblUpdate.setOpaque(false);
+		lblUpdate.setForeground(Color.white);
+		lblUpdate.setHorizontalAlignment(JLabel.CENTER);
+		add(lblUpdate);
+		lblUpdate.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "UPDATE public.pracownicy"
@@ -1944,19 +2744,31 @@ class DbPracownicy extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnDelete = new JButton("Delete");
-		btnDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnDelete.setBounds(407, 655, 130, 57);
-		btnDelete.setOpaque(false);
-		btnDelete.setContentAreaFilled(false);
-		btnDelete.setForeground(Color.white);
-		add(btnDelete);
-		btnDelete.addActionListener(new ActionListener() {
+		lblDelete = new JLabel("Delete");
+		lblDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblDelete.setBounds(407, 655, 130, 57);
+		lblDelete.setOpaque(false);
+		lblDelete.setForeground(Color.white);
+		lblDelete.setHorizontalAlignment(JLabel.CENTER);
+		add(lblDelete);
+		lblDelete.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
-				
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtID.getText().isBlank()) {
 					
 					String query = "DELETE FROM public.pracownicy WHERE ID = " + jtxtID.getText();
@@ -1974,12 +2786,28 @@ class DbPracownicy extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
+		
 	}
 	
 	private void Table() {
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(598, 100, 830, 612);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -2020,7 +2848,7 @@ class DbSamochodySearch extends JPanel{
 	private static Boolean KontrolaZawiasow;
 	private static Boolean RegulacjaHamulcaPostojowego;
 	private static Boolean KontrolaLuzowZaworowych;
-	private JButton btnAdd;
+	private JLabel lblAdd;
 	private JScrollPane scrollPane;
 	private JTable table;
 	private static DefaultTableModel Model = new DefaultTableModel();
@@ -2118,16 +2946,17 @@ class DbSamochodySearch extends JPanel{
 	
 	
 	private void Buttons() {
-		btnAdd = new JButton("Add");
-		btnAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnAdd.setBounds(1200, 343, 130, 57);
-		btnAdd.setOpaque(false);
-		btnAdd.setContentAreaFilled(false);
-		btnAdd.setForeground(Color.white);
-		add(btnAdd);
-		btnAdd.addActionListener(new ActionListener() {
+		
+		lblAdd = new JLabel("Add");
+		lblAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblAdd.setBounds(1200, 343, 130, 57);
+		lblAdd.setOpaque(false);
+		lblAdd.setForeground(Color.white);
+		lblAdd.setHorizontalAlignment(JLabel.CENTER);
+		add(lblAdd);
+		lblAdd.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if (!table.getSelectionModel().isSelectionEmpty()) {
 					String IDSamochodow = "";
 					int x = 0;
@@ -2160,12 +2989,28 @@ class DbSamochodySearch extends JPanel{
 					JOptionPane.showMessageDialog(null, "Co najmniej jeden z wierszy tabeli nie jest zaznaczony");
 				}
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
+		
 	}
 
 	private void Table(){
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(72, 100, 1100, 612);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -2207,9 +3052,9 @@ class DbZlecenia extends JPanel{
 	private static Date DataRealizacji;
 	private static Date DataOdbioru;
 	private static double OplataZaSpoznienie;
-	private JButton btnAdd;
-	private JButton btnUpdate;
-	private JButton btnDelete;
+	private JLabel lblAdd;
+	private JLabel lblUpdate;
+	private JLabel lblDelete;
 	private JScrollPane scrollPane;
 	private JTable table;
 	private static DefaultTableModel Model = new DefaultTableModel();
@@ -2409,16 +3254,17 @@ class DbZlecenia extends JPanel{
 	}
 	
 	private void Buttons() {
-		btnAdd = new JButton("Add");
-		btnAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnAdd.setBounds(53, 655, 130, 57);
-		btnAdd.setOpaque(false);
-		btnAdd.setContentAreaFilled(false);
-		btnAdd.setForeground(Color.white);
-		add(btnAdd);
-		btnAdd.addActionListener(new ActionListener() {
+		
+		lblAdd = new JLabel("Add");
+		lblAdd.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblAdd.setBounds(53, 655, 130, 57);
+		lblAdd.setOpaque(false);
+		lblAdd.setForeground(Color.white);
+		lblAdd.setHorizontalAlignment(JLabel.CENTER);
+		add(lblAdd);
+		lblAdd.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtIDSamochodu.getText().isBlank()) {
 					
 					String query = "INSERT INTO public.zlecenia (IDSamochodu, Nazwa, PrzyjecieZlecenia, DataRealizacji, DataOdbioru, OplataZaSpoznienie) "
@@ -2446,18 +3292,31 @@ class DbZlecenia extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnUpdate = new JButton("Update");
-		btnUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnUpdate.setBounds(238, 655, 130, 57);
-		btnUpdate.setOpaque(false);
-		btnUpdate.setContentAreaFilled(false);
-		btnUpdate.setForeground(Color.white);
-		add(btnUpdate);
-		btnUpdate.addActionListener(new ActionListener() {
+		lblUpdate = new JLabel("Update");
+		lblUpdate.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblUpdate.setBounds(238, 655, 130, 57);
+		lblUpdate.setOpaque(false);
+		lblUpdate.setForeground(Color.white);
+		lblUpdate.setHorizontalAlignment(JLabel.CENTER);
+		add(lblUpdate);
+		lblUpdate.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtIDSamochodu.getText().isBlank()) {
 					
 					String query = "UPDATE public.zlecenia"
@@ -2487,18 +3346,31 @@ class DbZlecenia extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnDelete = new JButton("Delete");
-		btnDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnDelete.setBounds(407, 655, 130, 57);
-		btnDelete.setOpaque(false);
-		btnDelete.setContentAreaFilled(false);
-		btnDelete.setForeground(Color.white);
-		add(btnDelete);
-		btnDelete.addActionListener(new ActionListener() {
+		lblDelete = new JLabel("Delete");
+		lblDelete.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblDelete.setBounds(407, 655, 130, 57);
+		lblDelete.setOpaque(false);
+		lblDelete.setForeground(Color.white);
+		lblUpdate.setHorizontalAlignment(JLabel.CENTER);
+		add(lblDelete);
+		lblDelete.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtIDSamochodu.getText().isBlank()) {
 					
 					String query = "DELETE FROM public.zlecenia WHERE IDSamochodu = " + jtxtIDSamochodu.getText();
@@ -2518,12 +3390,28 @@ class DbZlecenia extends JPanel{
 					JOptionPane.showMessageDialog(null, "ID jest puste");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
+
 	}
 	
 	private void Table(){
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(598, 100, 830, 612);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -2552,9 +3440,9 @@ class DbPanelAdmina extends JPanel{
 	private JLabel lblHaslo;
 	private JTextField jtxtUzytkownik;
 	private JPasswordField jpHaslo;
-	private JButton btnChangePassword;
-	private JButton btnBan;
-	private JButton btnUnban;
+	private JLabel lblChangePassword;
+	private JLabel lblBan;
+	private JLabel lblUnban;
 	private static String Uzytkownik;
 	private static boolean Banned;
 	private JScrollPane scrollPane;
@@ -2655,16 +3543,17 @@ class DbPanelAdmina extends JPanel{
 	}
 	
 	private void Buttons() {
-		btnChangePassword = new JButton("Change Password");
-		btnChangePassword.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnChangePassword.setBounds(53, 655, 200, 57);
-		btnChangePassword.setOpaque(false);
-		btnChangePassword.setContentAreaFilled(false);
-		btnChangePassword.setForeground(Color.white);
-		add(btnChangePassword);
-		btnChangePassword.addActionListener(new ActionListener() {
+		
+		lblChangePassword = new JLabel("Change Password");
+		lblChangePassword.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblChangePassword.setBounds(53, 655, 200, 57);
+		lblChangePassword.setOpaque(false);
+		lblChangePassword.setForeground(Color.white);
+		lblChangePassword.setHorizontalAlignment(JLabel.CENTER);
+		add(lblChangePassword);
+		lblChangePassword.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtUzytkownik.getText().isBlank() && !String.valueOf(jpHaslo.getPassword()).isBlank()) {
 					
 					String query = "ALTER USER " + jtxtUzytkownik.getText() + " WITH PASSWORD '" + String.valueOf(jpHaslo.getPassword()) + "'";
@@ -2680,20 +3569,32 @@ class DbPanelAdmina extends JPanel{
 				else{
 					JOptionPane.showMessageDialog(null, "Uzytkownik lub Haslo jest puste");
 		        }
-				
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnBan = new JButton("Ban");
-		btnBan.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnBan.setBounds(288, 655, 200, 57);
-		btnBan.setOpaque(false);
-		btnBan.setContentAreaFilled(false);
-		btnBan.setForeground(Color.white);
-		add(btnBan);
-		btnBan.addActionListener(new ActionListener() {
+		lblBan = new JLabel("Ban");
+		lblBan.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblBan.setBounds(288, 655, 200, 57);
+		lblBan.setOpaque(false);
+		lblBan.setForeground(Color.white);
+		lblBan.setHorizontalAlignment(JLabel.CENTER);
+		add(lblBan);
+		lblBan.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtUzytkownik.getText().isBlank()) {
 					
 					String query = "UPDATE public.users"
@@ -2709,20 +3610,32 @@ class DbPanelAdmina extends JPanel{
 				else{
 					JOptionPane.showMessageDialog(null, "Uzytkownik jest pusty");
 		        }
-				
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
 		
-		btnUnban = new JButton("Unban");
-		btnUnban.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnUnban.setBounds(507, 655, 200, 57);
-		btnUnban.setOpaque(false);
-		btnUnban.setContentAreaFilled(false);
-		btnUnban.setForeground(Color.white);
-		add(btnUnban);
-		btnUnban.addActionListener(new ActionListener() {
+		lblUnban = new JLabel("Unban");
+		lblUnban.setFont(new Font("Tahoma", Font.BOLD, 18));
+		lblUnban.setBounds(507, 655, 200, 57);
+		lblUnban.setOpaque(false);
+		lblUnban.setForeground(Color.white);
+		lblUnban.setHorizontalAlignment(JLabel.CENTER);
+		add(lblUnban);
+		lblUnban.addMouseListener(new MouseListener() {
 			
-			public void actionPerformed(ActionEvent e) {
+			public void mouseClicked(MouseEvent e) {
 				if(!jtxtUzytkownik.getText().isBlank()) {
 					
 					String query = "UPDATE public.users"
@@ -2739,12 +3652,28 @@ class DbPanelAdmina extends JPanel{
 					JOptionPane.showMessageDialog(null, "Uzytkownik jest pusty");
 		        }
 			}
+			
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			public void mousePressed(MouseEvent e) {
+			}
+			
+			public void mouseExited(MouseEvent e) {
+			}
+			
+			public void mouseEntered(MouseEvent e) {
+			}
+
 		});
+
 	}
 	
 	private void Table(){
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(748, 100, 680, 612);
+		Border empty = new EmptyBorder(0,0,0,0);
+		scrollPane.setBorder(empty);
 		add(scrollPane);
 		
 		table = new JTable();
@@ -2765,13 +3694,13 @@ class DbPanelAdmina extends JPanel{
 	
 }
 
-public class Lekcja29cz2_30_31_32_33_34 {
+public class Lekcja29cz2_30_31_32_33_34_36_37_38_39_40 {
 	
 	private JFrame frame;
 	private DBlogowanie2 dblogowanie2;
 	private Image Wrench;
 	
-	Lekcja29cz2_30_31_32_33_34(){
+	Lekcja29cz2_30_31_32_33_34_36_37_38_39_40(){
 		plikiGraficzne();
 	}
 	
@@ -2790,17 +3719,23 @@ public class Lekcja29cz2_30_31_32_33_34 {
 //kontrolê: hamulców, zawieszenia, opon, stanu p³ynów eksploatacyjnych i ewentualnych wycieków, œwiec zap³onowych, pasków rozrz¹du;
 //konserwacjê: zacisków hamulcowych, zamków i zawiasów;
 //regulacjê: hamulca postojowego lub luzów zaworowych.
+		
+//xml - samochody
+//³adowanie obrazków do bazy danych - samochody,bitarray
+//napisanie testów jednostków z wykorzystanie junit 4 lub 5
+
 
 //		new SerwisQueryExecutor("postgres", "12345").executeQuery("CREATE TABLE samochody (ID int, Nazwa varchar(255), WymianaOleju BOOLEAN, WymianaFiltru BOOLEAN, WymianaWycieraczek BOOLEAN, KontrolaHamulcow BOOLEAN, KontrolaZawieszenia BOOLEAN, KontrolaOpon BOOLEAN, KontrolaPlynow BOOLEAN, KontrolaWyciekow BOOLEAN, KontrolaSwiec BOOLEAN, KontrolaPaskow BOOLEAN, KonserwacjaZaciskowHamulocowych BOOLEAN, KontrolaZamkow BOOLEAN, KontrolaZawiasow BOOLEAN, RegulacjaHamulcaPostojowego BOOLEAN, KontrolaLuzowZaworowych BOOLEAN)");
+//		new SerwisQueryExecutor("postgres", "12345").executeQuery("ALTER TABLE samochody ADD Obrazek bytea");
 //		new SerwisQueryExecutor("postgres", "12345").executeQuery("CREATE TABLE stanowiska (ID int, Nazwa varchar(255), IDSamochodu int)");
 //		new SerwisQueryExecutor("postgres", "12345").executeQuery("CREATE TABLE pracownicy (ID int, Imie varchar(255), Nazwisko varchar(255), Plec BOOLEAN, Wiek int, IDSamochodu varchar(255))");
 //		new SerwisQueryExecutor("postgres", "12345").executeQuery("CREATE TABLE zlecenia (IDSamochodu int, Nazwa varchar(255), PrzyjecieZlecenia DATE, DataRealizacji DATE, DataOdbioru DATE, OplataZaSpoznienie DOUBLE PRECISION)");
 //		new SerwisQueryExecutor("postgres", "12345").executeQuery("CREATE TABLE users (Uzytkownik varchar(255), Banned BOOLEAN, PrzyjecieZlecenia DATE, DataRealizacji DATE, DataOdbioru DATE, OplataZaSpoznienie DOUBLE PRECISION)");
-		
+//		htmml, css		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run(){
 					try {
-						new Lekcja29cz2_30_31_32_33_34().createAndShowGUI();
+						new Lekcja29cz2_30_31_32_33_34_36_37_38_39_40().createAndShowGUI();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
